@@ -1,0 +1,11 @@
+@config "../tailwind.config.js";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Clerk overrides */
+.cl-userButtonOuterIdentifier {
+  color: white;
+  font-weight: 600;
+}

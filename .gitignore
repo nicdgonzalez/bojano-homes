@@ -1,0 +1,5 @@
+/target
+.env
+.shuttle*
+Secrets*.toml
+./package-lock.json
