@@ -1,2 +1,2 @@
 [build]
-assets = ["public/*"]
+assets = ["frontend/dist/*"]
