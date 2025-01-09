@@ -10,8 +10,8 @@ utilizes:
 - [Solid], a web framework for building the front end in JavaScript.
 - [Clerk], for user authentication and management.
 
-Click [here](https://bojano-homes-jcml.shuttle.app) for a LIVE demonstration deployed
-with [Shuttle].
+Click [here](https://bojano-homes-jcml.shuttle.app) for a LIVE demonstration
+deployed with [Shuttle].
 
 ## 🚀 Getting started
 
