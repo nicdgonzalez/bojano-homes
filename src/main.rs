@@ -1,35 +1,51 @@
-use std::process;
+mod api;
 
 use axum::{
-    extract::Request,
+    extract::{FromRef, Request},
     http::{header, HeaderValue},
     middleware,
     response::{Html, IntoResponse},
     Router,
 };
+use shuttle_runtime::SecretStore;
 use tower::{Layer, ServiceBuilder};
 use tower_http::{normalize_path::NormalizePathLayer, services::ServeDir};
 
+#[derive(Clone, FromRef)]
+struct AppState {
+    secrets: SecretStore,
+}
+
 /// The main entry point to the program.
 #[shuttle_runtime::main]
-async fn main() -> shuttle_axum::ShuttleAxum {
-    unsafe {
-        if let Err(why) = dotenvy::EnvLoader::new().load_and_modify() {
-            eprintln!("error: failed to load .env file: {why:#?}");
-            process::exit(1);
-        }
-    };
-
+async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum::ShuttleAxum {
     // Expose the `public` directory.
     let public = ServiceBuilder::new()
         .layer(middleware::from_fn(set_static_cache_control))
+        // The contents of our local `public` directory are automatically
+        // copied into the `dist` directory by Vite when building the frontend.
         .service(ServeDir::new("./frontend/dist"));
 
-    let router = Router::<()>::new()
-        .fallback(|| async { Html(include_str!("../frontend/dist/index.html")) })
-        .nest_service("/public", public);
+    let state = AppState { secrets };
 
+    let router = Router::<AppState>::new()
+        .nest("/api", api::get_router())
+        .fallback(|| async { Html(include_str!("../frontend/dist/index.html")) })
+        .nest_service("/public", public)
+        .with_state(state.into());
+
+    // Technically, `/foo` and `/foo/` are different routes; returning an error
+    // if one is not defined makes sense, but is counter intuitive for users.
+    // The following makes it so both routes load the same content.
+    //
+    // Because routing occurs before any middleware is ran, we need to wrap
+    // the original router with the following normalization layer. This cannot
+    // be added as a layer to the original router or it will not work.
     let router = NormalizePathLayer::trim_trailing_slash().layer(router);
+
+    // And finally, because Shuttle expects the final layer to be a Router
+    // (not `NormalizePathLayer`), we nest the normalization layer into a
+    // new router and return that instead.
     let router = Router::new().nest_service("/", router);
 
     Ok(router.into())
