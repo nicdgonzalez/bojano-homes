@@ -1,34 +1,30 @@
 use std::{path, process};
 
 fn main() {
+    // Install JavaScript dependencies.
     let frontend_dir = path::Path::new("frontend");
 
     if !frontend_dir.join("node_modules").exists() {
-        install_frontend_dependencies();
+        let status = process::Command::new("npm")
+            .arg("install")
+            .current_dir("./frontend")
+            .status()
+            .expect("failed to install frontend dependencies");
+
+        match status.code() {
+            Some(code) if code != 0 => {
+                panic!("failed to install frontend dependencies (exit code: {code})")
+            }
+            None => {
+                panic!("failed to install frontend dependencies: process terminated via signal")
+            }
+            _ => (),
+        };
     }
 
     println!("cargo::rerun-if-changed=frontend");
-    build_tailwindcss();
-    build_frontend();
-}
 
-fn install_frontend_dependencies() {
-    let status = process::Command::new("npm")
-        .arg("install")
-        .current_dir("./frontend")
-        .status()
-        .expect("failed to install frontend dependencies");
-
-    match status.code() {
-        Some(code) if code != 0 => {
-            panic!("failed to install frontend dependencies (exit code: {code})")
-        }
-        None => panic!("failed to install frontend dependencies: process terminated via signal"),
-        _ => (),
-    };
-}
-
-fn build_tailwindcss() {
+    // Build Tailwind CSS.
     let status = process::Command::new("npx")
         .args([
             "tailwindcss",
@@ -48,9 +44,8 @@ fn build_tailwindcss() {
         None => panic!("failed to build tailwindcss: process terminated via signal"),
         _ => (),
     };
-}
 
-fn build_frontend() {
+    // Build frontend.
     let status = process::Command::new("npx")
         .args(["vite", "build", "./frontend"])
         .status()
