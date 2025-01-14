@@ -6,6 +6,10 @@ build = "build.rs"
 
 [dependencies]
 axum = { version = "0.7.9", features = ["macros"] }
+futures = "0.3.31"
+log = "0.4.22"
+mongodb = "3.1.1"
+reqwest = "0.12.12"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.135"
 shuttle-axum = "0.49.0"

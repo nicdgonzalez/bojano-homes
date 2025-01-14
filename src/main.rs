@@ -7,6 +7,7 @@ use axum::{
     response::{Html, IntoResponse},
     Router,
 };
+use mongodb::bson::doc;
 use shuttle_runtime::SecretStore;
 use tower::{Layer, ServiceBuilder};
 use tower_http::{normalize_path::NormalizePathLayer, services::ServeDir};
@@ -14,6 +15,7 @@ use tower_http::{normalize_path::NormalizePathLayer, services::ServeDir};
 #[derive(Clone, FromRef)]
 struct AppState {
     secrets: SecretStore,
+    db: mongodb::Database,
 }
 
 /// The main entry point to the program.
@@ -26,7 +28,18 @@ async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum:
         // copied into the `dist` directory by Vite when building the frontend.
         .service(ServeDir::new("./frontend/dist"));
 
-    let state = AppState { secrets };
+    let database_uri = secrets
+        .get("MONGODB_URI")
+        .expect("expected 'MONGODB_URI' to be defined");
+    let client = mongodb::Client::with_uri_str(&database_uri)
+        .await
+        .expect("failed to connect to mongodb");
+    let db = client.database("LAB");
+
+    db.run_command(doc! { "ping": 1 }).await.unwrap();
+    println!("Pinged the database. Successfully connected to MongoDB!");
+
+    let state = AppState { secrets, db };
 
     let router = Router::<AppState>::new()
         .nest("/api", api::get_router())
