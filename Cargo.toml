@@ -5,10 +5,15 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
+anyhow = "1.0.95"
 axum = { version = "0.7.9", features = ["macros"] }
+base64 = "0.22.1"
+chrono = { version = "0.4.39", features = ["serde"] }
 futures = "0.3.31"
 log = "0.4.22"
 mongodb = "3.1.1"
+openssl = { version = "0.10.68", features = ["vendored"] }
+regex = "1.11.1"
 reqwest = "0.12.12"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.135"

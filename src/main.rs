@@ -1,4 +1,5 @@
 mod api;
+mod sheets_v4;
 
 use axum::{
     extract::{FromRef, Request},
@@ -36,8 +37,9 @@ async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum:
         .expect("failed to connect to mongodb");
     let db = client.database("LAB");
 
-    db.run_command(doc! { "ping": 1 }).await.unwrap();
-    println!("Pinged the database. Successfully connected to MongoDB!");
+    db.run_command(doc! {"ping": 1})
+        .await
+        .expect("failed to ping the database");
 
     let state = AppState { secrets, db };
 

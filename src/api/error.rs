@@ -35,10 +35,10 @@ impl fmt::Display for UserError {
 impl IntoResponse for UserError {
     fn into_response(self) -> axum::response::Response {
         let status_code = match &self {
-            Self::RequestFailure(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::BadId(_) => StatusCode::BAD_REQUEST,
+            Self::RequestFailure(..) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::BadId(..) => StatusCode::BAD_REQUEST,
             Self::InvalidApiKey => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::NotFound(_) => StatusCode::NOT_FOUND,
+            Self::NotFound(..) => StatusCode::NOT_FOUND,
         };
         let detail = self.to_string();
 
@@ -72,9 +72,41 @@ impl fmt::Display for PropertyError {
 impl IntoResponse for PropertyError {
     fn into_response(self) -> axum::response::Response {
         let status_code = match &self {
-            Self::RequestFailure(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::BadId(_) => StatusCode::BAD_REQUEST,
-            Self::NotFound(_) => StatusCode::NOT_FOUND,
+            Self::RequestFailure(..) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::BadId(..) => StatusCode::BAD_REQUEST,
+            Self::NotFound(..) => StatusCode::NOT_FOUND,
+        };
+        let detail = self.to_string();
+
+        (status_code, Json(json!({ "detail": detail }))).into_response()
+    }
+}
+
+/// An error occurred while trying to get reservations from the database.
+#[derive(Debug)]
+pub enum ReservationError {
+    /// An unexpected error occurred while trying to get the data.
+    RequestFailure(String),
+    /// A property exists, but the corresponding data sheet was not found.
+    SpreadsheetNotFound(i32, String),
+}
+
+impl error::Error for ReservationError {}
+
+impl fmt::Display for ReservationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RequestFailure(reason) => write!(f, "{}", reason),
+            Self::SpreadsheetNotFound(year, id) => write!(f, "year {} spreadsheet not found for property with id {}", year, id),
+        }
+    }
+}
+
+impl IntoResponse for ReservationError {
+    fn into_response(self) -> axum::response::Response {
+        let status_code = match &self {
+            Self::RequestFailure(..) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::SpreadsheetNotFound(..) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         let detail = self.to_string();
 
