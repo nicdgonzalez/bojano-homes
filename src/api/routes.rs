@@ -6,7 +6,6 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use reqwest::StatusCode;
 use serde_json::json;
 
 use crate::{
@@ -15,10 +14,7 @@ use crate::{
     AppState,
 };
 
-use super::{
-    model::Month,
-    service::{get_properties_by_user, get_property_by_id, get_reservations_by_month},
-};
+use super::{model::Reservation, service::*};
 
 /// Defines all API-related endpoints.
 pub fn get_router() -> Router<AppState> {
@@ -32,11 +28,14 @@ pub fn get_router() -> Router<AppState> {
 // └────────────────────────────────────┘
 
 fn get_router_for_expense_sheets() -> Router<AppState> {
-    Router::new().route("/expense_sheets", get(expense_sheet_get))
+    Router::new().route("/:year", get(expense_sheet_get))
 }
 
-async fn expense_sheet_get() -> Response {
-    todo!()
+async fn expense_sheet_get(Path(year): Path<i32>, State(state): State<AppState>) -> Response {
+    match get_expense_sheet_id_by_year(year, &state.db).await {
+        Ok(expense_sheet_id) => Json(json!({"id": expense_sheet_id})).into_response(),
+        Err(err) => err,
+    }
 }
 
 // ┌───────────────────────────┐
@@ -125,12 +124,70 @@ fn get_router_for_expenses() -> Router<AppState> {
         .route("/:year/:month", get(expenses_monthly_get))
 }
 
-async fn expenses_annual_get() -> Response {
-    todo!()
+async fn expenses_annual_get(
+    Path((user_id, property_id, year)): Path<(String, String, i32)>,
+    State(state): State<AppState>,
+) -> Response {
+    let secret_key = state
+        .secrets
+        .get("CLERK_SECRET_KEY")
+        .expect("expected CLERK_SECRET_KEY to be defined");
+
+    let user = match get_user_by_id(&user_id, &secret_key).await {
+        Ok(user) => user,
+        Err(err) => return err.into_response(),
+    };
+
+    let property = match get_property_by_id(&property_id, &user, &state.db).await {
+        Ok(property) => property,
+        Err(err) => return err.into_response(),
+    };
+
+    let service_account_key = state
+        .secrets
+        .get("SERVICE_ACCOUNT_KEY")
+        .expect("expected SERVICE_ACCOUNT_KEY to be defined");
+    let credentials: sheets_v4::ServiceAccountKey =
+        serde_json::from_str(&service_account_key).unwrap();
+    let mut sheets_client = sheets_v4::Client::new(credentials, Scope::SpreadsheetsReadOnly);
+
+    match get_expenses_by_year(&property, year, &mut sheets_client, &state.db).await {
+        Ok(expenses) => Json(expenses).into_response(),
+        Err(err) => err.into_response(),
+    }
 }
 
-async fn expenses_monthly_get() -> Response {
-    todo!()
+async fn expenses_monthly_get(
+    Path((user_id, property_id, year, month)): Path<(String, String, i32, u8)>,
+    State(state): State<AppState>,
+) -> Response {
+    let secret_key = state
+        .secrets
+        .get("CLERK_SECRET_KEY")
+        .expect("expected CLERK_SECRET_KEY to be defined");
+
+    let user = match get_user_by_id(&user_id, &secret_key).await {
+        Ok(user) => user,
+        Err(err) => return err.into_response(),
+    };
+
+    let property = match get_property_by_id(&property_id, &user, &state.db).await {
+        Ok(property) => property,
+        Err(err) => return err.into_response(),
+    };
+
+    let service_account_key = state
+        .secrets
+        .get("SERVICE_ACCOUNT_KEY")
+        .expect("expected SERVICE_ACCOUNT_KEY to be defined");
+    let credentials: sheets_v4::ServiceAccountKey =
+        serde_json::from_str(&service_account_key).unwrap();
+    let mut sheets_client = sheets_v4::Client::new(credentials, Scope::SpreadsheetsReadOnly);
+
+    match get_expenses_by_month(&property, year, month, &mut sheets_client, &state.db).await {
+        Ok(expenses) => Json(expenses).into_response(),
+        Err(err) => err.into_response(),
+    }
 }
 
 // ┌──────────────────────────────────┐
@@ -143,8 +200,44 @@ fn get_router_for_reservations() -> Router<AppState> {
         .route("/:year/:month", get(reservations_monthly_get))
 }
 
-async fn reservations_annual_get() -> Response {
-    todo!()
+async fn reservations_annual_get(
+    Path((user_id, property_id, year)): Path<(String, String, i32)>,
+    State(state): State<AppState>,
+) -> Response {
+    let service_account_key = state
+        .secrets
+        .get("SERVICE_ACCOUNT_KEY")
+        .expect("expected SERVICE_ACCOUNT_KEY to be defined");
+    let credentials: sheets_v4::ServiceAccountKey =
+        serde_json::from_str(&service_account_key).unwrap();
+    let mut sheets_client = sheets_v4::Client::new(credentials, Scope::SpreadsheetsReadOnly);
+
+    let secret_key = state
+        .secrets
+        .get("CLERK_SECRET_KEY")
+        .expect("expected CLERK_SECRET_KEY to be defined");
+
+    let user = match get_user_by_id(&user_id, &secret_key).await {
+        Ok(user) => user,
+        Err(err) => return err.into_response(),
+    };
+
+    let property = match get_property_by_id(&property_id, &user, &state.db).await {
+        Ok(property) => property,
+        Err(err) => return err.into_response(),
+    };
+
+    let mut reservations: Vec<Vec<Reservation>> = Vec::new();
+
+    for month in 1..=12 {
+        match get_reservations_by_month(&property, year, month, &state.db, &mut sheets_client).await
+        {
+            Ok(v) => reservations.push(v),
+            Err(err) => return err.into_response(),
+        };
+    }
+
+    Json(reservations).into_response()
 }
 
 async fn reservations_monthly_get(
@@ -172,28 +265,6 @@ async fn reservations_monthly_get(
     let property = match get_property_by_id(&property_id, &user, &state.db).await {
         Ok(property) => property,
         Err(err) => return err.into_response(),
-    };
-
-    let month = match month {
-        1 => Month::January,
-        2 => Month::February,
-        3 => Month::March,
-        4 => Month::April,
-        5 => Month::May,
-        6 => Month::June,
-        7 => Month::July,
-        8 => Month::August,
-        9 => Month::September,
-        10 => Month::October,
-        11 => Month::November,
-        12 => Month::December,
-        _ => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(json!({"detail": "invalid month digit"})),
-            )
-                .into_response()
-        }
     };
 
     match get_reservations_by_month(&property, year, month, &state.db, &mut sheets_client).await {

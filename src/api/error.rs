@@ -2,9 +2,10 @@
 
 use std::{error, fmt};
 
-use axum::{response::IntoResponse, Json};
+use axum::response::IntoResponse;
 use reqwest::StatusCode;
-use serde_json::json;
+
+use crate::http_error;
 
 /// An error occurred while trying to get a user from the database.
 #[derive(Debug)]
@@ -42,7 +43,7 @@ impl IntoResponse for UserError {
         };
         let detail = self.to_string();
 
-        (status_code, Json(json!({ "detail": detail }))).into_response()
+        http_error!(status_code, detail)
     }
 }
 
@@ -78,7 +79,34 @@ impl IntoResponse for PropertyError {
         };
         let detail = self.to_string();
 
-        (status_code, Json(json!({ "detail": detail }))).into_response()
+        http_error!(status_code, detail)
+    }
+}
+
+#[derive(Debug)]
+pub enum ExpenseError {
+    /// An unexpected error occurred while trying to get the data.
+    RequestFailure(String),
+}
+
+impl error::Error for ExpenseError {}
+
+impl fmt::Display for ExpenseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RequestFailure(reason) => write!(f, "{}", reason),
+        }
+    }
+}
+
+impl IntoResponse for ExpenseError {
+    fn into_response(self) -> axum::response::Response {
+        let status_code = match &self {
+            Self::RequestFailure(..) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        let detail = self.to_string();
+
+        http_error!(status_code, detail)
     }
 }
 
@@ -89,6 +117,8 @@ pub enum ReservationError {
     RequestFailure(String),
     /// A property exists, but the corresponding data sheet was not found.
     SpreadsheetNotFound(i32, String),
+    /// An invalid value was provided for month.
+    InvalidMonth,
 }
 
 impl error::Error for ReservationError {}
@@ -97,7 +127,12 @@ impl fmt::Display for ReservationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::RequestFailure(reason) => write!(f, "{}", reason),
-            Self::SpreadsheetNotFound(year, id) => write!(f, "year {} spreadsheet not found for property with id {}", year, id),
+            Self::SpreadsheetNotFound(year, id) => write!(
+                f,
+                "year {} spreadsheet not found for property with id {}",
+                year, id
+            ),
+            Self::InvalidMonth => write!(f, "invalid value provided for month"),
         }
     }
 }
@@ -107,9 +142,10 @@ impl IntoResponse for ReservationError {
         let status_code = match &self {
             Self::RequestFailure(..) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::SpreadsheetNotFound(..) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::InvalidMonth => StatusCode::BAD_REQUEST,
         };
         let detail = self.to_string();
 
-        (status_code, Json(json!({ "detail": detail }))).into_response()
+        http_error!(status_code, detail)
     }
 }

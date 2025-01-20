@@ -26,30 +26,29 @@ pub struct PhoneNumber {
     pub phone_numbers: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Property {
     pub id: String,
     pub name: String,
     pub address: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Expense {
-    pub property_id: String,
     pub amount: f32,
     pub description: String,
-    pub timestamp: String,
+    pub timestamp: chrono::NaiveDateTime,
     pub receipt_link: String,
     pub merchant: String,
     pub buyers_name: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Reservation {
     pub platform: String,
-    pub payout_date: String,
-    pub check_in: String,
-    pub check_out: String,
+    pub payout_date: chrono::NaiveDateTime,
+    pub check_in: chrono::NaiveDateTime,
+    pub check_out: chrono::NaiveDateTime,
     pub revenue: f32,
     pub management_fee: f32,
     pub net_profit: f32,
@@ -69,6 +68,30 @@ pub enum Month {
     October,
     November,
     December,
+}
+
+impl TryFrom<u8> for Month {
+    type Error = &'static str;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        let month = match value {
+            1 => Month::January,
+            2 => Month::February,
+            3 => Month::March,
+            4 => Month::April,
+            5 => Month::May,
+            6 => Month::June,
+            7 => Month::July,
+            8 => Month::August,
+            9 => Month::September,
+            10 => Month::October,
+            11 => Month::November,
+            12 => Month::December,
+            _ => return Err("expected value to be between 1 and 12"),
+        };
+
+        Ok(month)
+    }
 }
 
 impl fmt::Display for Month {

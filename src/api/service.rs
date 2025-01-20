@@ -2,16 +2,44 @@
 
 use std::str::FromStr;
 
+use axum::response::Response;
+use chrono::Datelike;
 use futures::TryStreamExt;
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
 use reqwest::StatusCode;
 use serde::Deserialize;
 
+use crate::http_error;
 use crate::sheets_v4::{self, CreateGetValues, ValueRange};
 
-use super::error::{PropertyError, ReservationError, UserError};
-use super::model::{Month, Property, Reservation, User};
+use super::error::{ExpenseError, PropertyError, ReservationError, UserError};
+use super::model::{Expense, Month, Property, Reservation, User};
+
+#[derive(Debug, serde::Deserialize)]
+struct ExpenseSheetDocument {
+    #[serde(rename = "_id")]
+    id: String,
+}
+
+pub async fn get_expense_sheet_id_by_year(
+    year: i32,
+    database: &mongodb::Database,
+) -> Result<String, Response> {
+    let document: ExpenseSheetDocument = database
+        .collection("expense_sheet")
+        .find_one(doc! {"year": year})
+        .await
+        .map_err(|err| http_error!(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?
+        .ok_or_else(|| {
+            http_error!(
+                StatusCode::NOT_FOUND,
+                format!("expense sheet not found for year {year}")
+            )
+        })?;
+
+    Ok(document.id)
+}
 
 /// Get information about a user via user ID.
 pub async fn get_user_by_id(id: &str, key: &str) -> Result<User, UserError> {
@@ -98,37 +126,136 @@ pub async fn get_property_by_id(
     })
 }
 
+#[derive(Debug, Default, serde::Deserialize)]
+struct ExpenseValues(
+    String,                     // [0]: Timestamp
+    #[allow(dead_code)] String, // [1]: Date
+    String,                     // [2]: Property (name)
+    String,                     // [3]: Amount
+    String,                     // [4]: Description
+    #[serde(default)] String,   // [5]: Receipt (link)
+    #[serde(default)] String,   // [6]: Merchant
+    #[serde(default)] String,   // [7]: Name (of the employee that purchased the item)
+);
+
+pub async fn get_expenses_by_year(
+    property: &Property,
+    year: i32,
+    sheets_client: &mut sheets_v4::Client,
+    database: &mongodb::Database,
+) -> Result<Vec<Expense>, ExpenseError> {
+    let expense_sheet_id = get_expense_sheet_id_by_year(year, &database)
+        .await
+        .map_err(|_| {
+            ExpenseError::RequestFailure(format!("failed to get id for {year}'s expense sheet"))
+        })?;
+
+    let params = CreateGetValues {
+        spreadsheet_id: expense_sheet_id,
+        range: "Expenses!A:H".to_string(),
+    };
+
+    let result: ValueRange<ExpenseValues> = sheets_v4::get_values(sheets_client, &params)
+        .await
+        .map_err(|err| ExpenseError::RequestFailure(err.to_string()))?;
+
+    let expenses: Vec<Expense> = result
+        .values
+        .iter()
+        .skip(1) // Skip header row.
+        .filter_map(|values| {
+            if values.2.to_lowercase() != property.name {
+                return None;
+            }
+
+            let expense = Expense {
+                amount: normalize_price(&values.3)
+                    .parse()
+                    .expect("failed to parse expense amount"),
+                description: values.4.trim().to_string(),
+                timestamp: try_parse_timestamp(&values.0).expect("failed to parse timestamp"),
+                buyers_name: values.7.trim().to_string(),
+                merchant: values.6.trim().to_string(),
+                receipt_link: values.5.trim().to_string(),
+            };
+
+            Some(expense)
+        })
+        .collect();
+
+    Ok(expenses)
+}
+
+fn try_parse_timestamp(timestamp: &str) -> Option<chrono::NaiveDateTime> {
+    static FORMAT: &'static [&str] = &[
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %-H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%dT%H:%M:%S.%f%z",
+        "%Y-%m-%dT%H:%M:%S.%f%:z",
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%Y/%m/%d %-H:%M:%S",
+        "%m/%d/%y",
+        "%-m/%d/%Y %-H:%M:%S",
+    ];
+
+    for &format in FORMAT.iter() {
+        match chrono::NaiveDateTime::parse_from_str(timestamp, format) {
+            Ok(dt) => return Some(dt),
+            Err(err) => println!("{err}"),
+        };
+    }
+
+    None
+}
+
+pub async fn get_expenses_by_month(
+    property: &Property,
+    year: i32,
+    month: u8,
+    sheets_client: &mut sheets_v4::Client,
+    database: &mongodb::Database,
+) -> Result<Vec<Expense>, ExpenseError> {
+    Ok(
+        get_expenses_by_year(property, year, sheets_client, database)
+            .await?
+            .into_iter()
+            .filter_map(move |expense| {
+                (expense.timestamp.month() == (month as u32)).then(|| expense)
+            })
+            .collect::<Vec<Expense>>(),
+    )
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct SpreadsheetDocument {
     #[serde(rename = "_id")]
-    id: ObjectId,
+    id: String,
     property_id: ObjectId,
     year: i32,
 }
 
-/// Represents each of the values in a row returned from Google Sheets.
-///
-/// Table Headings:
-/// [0]: Platform
-/// [1]: Date Paid Out
-/// [2]: Check-in
-/// [3]: Check-out
-/// [4]: Revenue
-/// [5]: Management Fee
-/// [6]: Net Profit
 #[derive(Deserialize)]
-#[rustfmt::skip]
-struct ReservationValues(String, String, String, String, String, String, String);
+struct ReservationValues(
+    String, // [0]: Platform
+    String, // [1]: Date Paid Out
+    String, // [2]: Check-in
+    String, // [3]: Check-out
+    String, // [4]: Revenue
+    String, // [5]: Management Fee
+    String, // [6]: Net Profit
+);
 
 pub async fn get_reservations_by_month(
     property: &Property,
     year: i32,
-    month: Month,
+    month: u8,
     database: &mongodb::Database,
     sheets_client: &mut sheets_v4::Client,
 ) -> Result<Vec<Reservation>, ReservationError> {
-    // property id should already be valid if we got to this point.
+    // Property ID should already be valid if we got to this point.
     let property_id = ObjectId::from_str(&property.id).unwrap();
     let spreadsheet: SpreadsheetDocument = database
         .collection("spreadsheet")
@@ -136,6 +263,10 @@ pub async fn get_reservations_by_month(
         .await
         .map_err(|err| ReservationError::RequestFailure(err.to_string()))?
         .ok_or_else(|| ReservationError::SpreadsheetNotFound(year, property.id.to_string()))?;
+
+    let month: Month = month
+        .try_into()
+        .map_err(|_| ReservationError::InvalidMonth)?;
 
     let params = CreateGetValues {
         spreadsheet_id: spreadsheet.id.to_string(),
@@ -149,31 +280,30 @@ pub async fn get_reservations_by_month(
     let reservations: Vec<Reservation> = result
         .values
         .iter()
+        .skip(1) // Skip the table headings.
         .filter_map(|values| {
             if values.0.is_empty() {
                 return None;
             }
 
-            let management_fee = if values.5.is_empty() {
-                0.0
-            } else {
-                normalize_price(&values.5)
-                    .parse()
-                    .expect("failed to parse management_fee")
-            };
-
             let reservation = Reservation {
-                platform: values.0.to_lowercase(),
-
-                // TODO: Convert these to timestamps
-                payout_date: values.1.clone(),
-                check_in: values.2.clone(),
-                check_out: values.3.clone(),
-
+                platform: values.0.trim().to_lowercase(),
+                payout_date: chrono::NaiveDateTime::parse_from_str(&values.1, "%m/%d/%Y")
+                    .expect("failed to parse payout date"),
+                check_in: chrono::NaiveDateTime::parse_from_str(&values.2, "%m/%d/%Y")
+                    .expect("failed to parse check in date"),
+                check_out: chrono::NaiveDateTime::parse_from_str(&values.3, "%m/%d/%Y")
+                    .expect("failed to parse check out date"),
                 revenue: normalize_price(&values.4)
                     .parse()
                     .expect("failed to parse revenue"),
-                management_fee,
+                management_fee: if values.5.is_empty() {
+                    0.0
+                } else {
+                    normalize_price(&values.5)
+                        .parse()
+                        .expect("failed to parse management_fee")
+                },
                 net_profit: normalize_price(&values.6)
                     .parse()
                     .expect("failed to parse net profit"),

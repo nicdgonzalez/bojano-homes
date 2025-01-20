@@ -76,3 +76,11 @@ async fn set_static_cache_control(request: Request, next: middleware::Next) -> i
 
     response
 }
+
+macro_rules! http_error {
+    ($status_code:expr, $detail:expr) => {
+        axum::response::IntoResponse::into_response(($status_code, axum::Json(serde_json::json!({"detail": $detail}))))
+    };
+}
+
+pub(crate) use http_error;

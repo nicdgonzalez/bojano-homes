@@ -174,8 +174,10 @@ pub struct CreateGetValues {
 #[derive(Debug, Deserialize)]
 pub enum Dimension {
     /// Operates on the rows of a sheet.
+    #[serde(rename = "ROWS")]
     Rows,
     /// Operates on the columns of a sheet.
+    #[serde(rename = "COLUMNS")]
     Columns,
 }
 
@@ -192,6 +194,7 @@ pub struct ValueRange<T> {
 #[derive(Debug)]
 pub enum GetValuesError {
     RequestFailure(String),
+    MissingPermissions,
 }
 
 impl error::Error for GetValuesError {}
@@ -200,6 +203,9 @@ impl fmt::Display for GetValuesError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::RequestFailure(reason) => write!(f, "{}", reason),
+            Self::MissingPermissions => {
+                write!(f, "missing required permissions to view this resource")
+            }
         }
     }
 }
@@ -207,7 +213,8 @@ impl fmt::Display for GetValuesError {
 impl IntoResponse for GetValuesError {
     fn into_response(self) -> axum::response::Response {
         let status_code = match &self {
-            Self::RequestFailure(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::RequestFailure(..) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::MissingPermissions => StatusCode::FORBIDDEN,
         };
         let detail = self.to_string();
 
@@ -219,7 +226,7 @@ pub async fn get_values<T: for<'de> Deserialize<'de>>(
     client: &mut Client,
     params: &CreateGetValues,
 ) -> Result<ValueRange<T>, GetValuesError> {
-    static BASE_URL: &'static str = "https://sheets.googleapis.com/v4/spreadsheets/";
+    static BASE_URL: &'static str = "https://sheets.googleapis.com/v4/spreadsheets";
 
     let url = format!(
         "{BASE_URL}/{id}/values/{range}",
@@ -243,7 +250,11 @@ pub async fn get_values<T: for<'de> Deserialize<'de>>(
     response
         .error_for_status_ref()
         .map_err(|err| match err.status() {
-            _ => GetValuesError::RequestFailure(format!("{:#?}", err.status())),
+            Some(StatusCode::FORBIDDEN) => GetValuesError::MissingPermissions,
+            _ => GetValuesError::RequestFailure(format!(
+                "errors_for_status_ref: {:#?}",
+                err.status()
+            )),
         })?;
 
     let body = response.text().await.expect("failed to get response body");
