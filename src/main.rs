@@ -6,6 +6,7 @@ use axum::{
     http::{header, HeaderValue},
     middleware,
     response::{Html, IntoResponse},
+    routing::get,
     Router,
 };
 use mongodb::bson::doc;
@@ -44,8 +45,8 @@ async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum:
     let state = AppState { secrets, db };
 
     let router = Router::<AppState>::new()
+        .route("/", get(serve_frontend))
         .nest("/api", api::get_router())
-        .fallback(|| async { Html(include_str!("../frontend/dist/index.html")) })
         .nest_service("/public", public)
         .with_state(state.into());
 
@@ -64,6 +65,10 @@ async fn main(#[shuttle_runtime::Secrets] secrets: SecretStore) -> shuttle_axum:
     let router = Router::new().nest_service("/", router);
 
     Ok(router.into())
+}
+
+async fn serve_frontend() -> impl IntoResponse {
+    Html(include_str!("../frontend/dist/index.html"))
 }
 
 async fn set_static_cache_control(request: Request, next: middleware::Next) -> impl IntoResponse {

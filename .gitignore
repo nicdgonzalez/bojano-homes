@@ -2,4 +2,4 @@
 .env
 .shuttle*
 Secrets*.toml
-./package-lock.json
+./public/tailwind.css

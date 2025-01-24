@@ -1,10 +1,12 @@
 /** @refresh reload */
 
-import { lazy } from "solid-js";
+import { Suspense } from "solid-js";
 import { render } from "solid-js/web";
-import { RouteDefinition, Router } from "@solidjs/router";
 
-import { RootLayout } from "./routes/layout";
+import { ClerkLoaded, ClerkProvider } from "clerk-solidjs";
+import { Top } from "./components/Top";
+import { Overview } from "./components/Overview";
+import { MetaProvider, Title } from "@solidjs/meta";
 
 const root = (() => {
   const entryPoint = document.getElementById("root");
@@ -16,39 +18,33 @@ const root = (() => {
   return entryPoint;
 })();
 
-/**
- * @see https://docs.solidjs.com/solid-router/getting-started/config
- */
-const routes: RouteDefinition[] = [
-  {
-    path: "*404",
-    component: lazy(() => import("./routes/[...404]")),
-  },
-  {
-    path: "/",
-    component: lazy(() => import("./routes/page")),
-  },
-  {
-    path: "/properties",
-    component: lazy(() => import("./routes/properties/layout")),
-    children: [
-      {
-        path: "/",
-        component: lazy(() => import("./routes/properties/page")),
-      },
-      {
-        path: "/:index",
-        component: lazy(() => import("./routes/properties/[index]/page")),
-      },
-      {
-        path: "/:index/summary",
-        component: lazy(() =>
-          import("./routes/properties/[index]/summary/page")
-        ),
-      },
-    ],
-  },
-];
+function App() {
+  return (
+    <>
+      <MetaProvider>
+        <Title>Overview | Bojano Homes</Title>
+      </MetaProvider>
+
+      <ClerkProvider
+        publishableKey={"pk_test_d2VsY29tZS1zYXR5ci0yMy5jbGVyay5hY2NvdW50cy5kZXYk"}
+      >
+        <Suspense>
+          <div class="bg-amber-200 text-amber-900 p-1 text-center font-semibold">
+            The site is currently under active development!
+          </div>
+          <Top />
+          <div class="flex flex-col items-center">
+            <div class="container flex flex-col items-center">
+              <ClerkLoaded>
+                <Overview />
+              </ClerkLoaded>
+            </div>
+          </div>
+        </Suspense>
+      </ClerkProvider>
+    </>
+  );
+}
 
 // The main entry point to the application.
-render(() => <Router root={RootLayout}>{routes}</Router>, root);
+render(() => <App />, root);

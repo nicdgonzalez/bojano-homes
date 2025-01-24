@@ -27,7 +27,7 @@ fn main() {
     // Build Tailwind CSS.
     let status = process::Command::new("npx")
         .args([
-            "tailwindcss",
+            "@tailwindcss/cli",
             "--config",
             "./frontend/tailwind.config.js",
             "--input",

@@ -288,12 +288,15 @@ pub async fn get_reservations_by_month(
 
             let reservation = Reservation {
                 platform: values.0.trim().to_lowercase(),
-                payout_date: chrono::NaiveDateTime::parse_from_str(&values.1, "%m/%d/%Y")
-                    .expect("failed to parse payout date"),
-                check_in: chrono::NaiveDateTime::parse_from_str(&values.2, "%m/%d/%Y")
-                    .expect("failed to parse check in date"),
-                check_out: chrono::NaiveDateTime::parse_from_str(&values.3, "%m/%d/%Y")
-                    .expect("failed to parse check out date"),
+                payout_date: chrono::NaiveDate::parse_from_str(&values.1, "%-m/%-d/%Y")
+                    .expect("failed to parse payout date")
+                    .into(),
+                check_in: chrono::NaiveDate::parse_from_str(&values.2, "%-m/%-d/%Y")
+                    .expect("failed to parse check in date")
+                    .into(),
+                check_out: chrono::NaiveDate::parse_from_str(&values.3, "%-m/%-d/%Y")
+                    .expect("failed to parse check out date")
+                    .into(),
                 revenue: normalize_price(&values.4)
                     .parse()
                     .expect("failed to parse revenue"),
