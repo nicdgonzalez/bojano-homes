@@ -7,6 +7,14 @@ import { ClerkLoaded, ClerkProvider } from "clerk-solidjs";
 import { Top } from "./components/Top";
 import { Overview } from "./components/Overview";
 import { MetaProvider, Title } from "@solidjs/meta";
+import { Clerk } from "@clerk/clerk-js";
+
+// `<ClerkLoaded>` guarantees `window.Clerk` exists for child components.
+declare global {
+  interface Window {
+    Clerk?: Clerk;
+  }
+}
 
 const root = (() => {
   const entryPoint = document.getElementById("root");
@@ -34,7 +42,7 @@ function App() {
           </div>
           <Top />
           <div class="flex flex-col items-center">
-            <div class="container flex flex-col items-center">
+            <div class="mx-auto max-w-screen px-4 lg:px-8 relative flex-1 overflow-hidden">
               <ClerkLoaded>
                 <Overview />
               </ClerkLoaded>

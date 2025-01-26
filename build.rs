@@ -6,7 +6,7 @@ fn main() {
 
     if !frontend_dir.join("node_modules").exists() {
         let status = process::Command::new("npm")
-            .arg("install")
+            .args(["install", "--legacy-peer-deps"])
             .current_dir("./frontend")
             .status()
             .expect("failed to install frontend dependencies");
