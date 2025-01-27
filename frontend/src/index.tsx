@@ -5,7 +5,7 @@ import { render } from "solid-js/web";
 
 import { ClerkLoaded, ClerkProvider } from "clerk-solidjs";
 import { Top } from "./components/Top";
-import { Overview } from "./components/Overview";
+import { Overview } from "./routes/Overview";
 import { MetaProvider, Title } from "@solidjs/meta";
 import { Clerk } from "@clerk/clerk-js";
 
@@ -38,7 +38,7 @@ function App() {
       >
         <Suspense>
           <div class="bg-amber-200 text-amber-900 p-1 text-center font-semibold">
-            The site is currently under active development!
+            The site is under active development!
           </div>
           <Top />
           <div class="flex flex-col items-center">

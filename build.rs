@@ -31,7 +31,7 @@ fn main() {
             "--config",
             "./frontend/tailwind.config.js",
             "--input",
-            "./frontend/src/index.css",
+            "./frontend/src/global.css",
             "--output",
             "./public/tailwind.css",
             "--minify",

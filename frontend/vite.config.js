@@ -7,4 +7,8 @@ export default {
   plugins: [solid(), tailwindcss(), suidPlugin()],
   base: "/public",
   publicDir: "../public",
+  build: {
+    minify: false, // Disable minification
+    sourcemap: true, // Enable source maps for easier debugging
+  },
 };
