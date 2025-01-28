@@ -21,7 +21,7 @@ export function ExpenseTable(props: ExpenseTableProps) {
   return (
     <Box>
       <div>
-        <h3 class="font-semibold text-gray-900 dark:text-gray-50 w-full">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-50 w-full">
           Expenses
         </h3>
         <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
@@ -30,7 +30,7 @@ export function ExpenseTable(props: ExpenseTableProps) {
       </div>
       <div>
         <div class="w-full overflow-auto whitespace-nowrap mt-4">
-          <Table headers={headers} caption="end of results">
+          <Table headers={headers} caption="End of results">
             <For each={props.expenses}>
               {(expense) => <ExpenseRow expense={expense} />}
             </For>
@@ -48,16 +48,21 @@ interface ExpenseRowProps {
 function ExpenseRow({ expense }: ExpenseRowProps) {
   const date = expense.timestamp.toISOString().split("T").at(0);
   const amount = (() => {
-    const sign = expense.amount < 0 ? "-" : "+";
     const amount = Math.abs(expense.amount).toFixed(2);
 
-    return `${sign}$${amount}`;
+    return `${expense.amount > 0 ? "+" : ""}$${amount}`;
   })();
 
   return (
     <TableRow>
       <TableData>{date}</TableData>
-      <TableData>{amount}</TableData>
+      <TableData>
+        <span
+          class={expense.amount > 0 ? "text-green-700 dark:text-green-300" : ""}
+        >
+          {amount}
+        </span>
+      </TableData>
       <TableData>{expense.description}</TableData>
       <TableData>
         <Show when={expense.receiptLink.length > 0} fallback={<>None</>}>
@@ -82,6 +87,7 @@ export function ExpenseTableSkeleton(props: ExpenseTableSkeletonProps) {
     "Receipt Link",
     "Purchased By",
   ];
+  const count = props.count ?? 3;
 
   return (
     <div class="mx-auto w-full rounded-md border border-gray-200 bg-white dark:bg-gray-900/50 dark:border-gray-800 p-6 sm:p-10 mt-8">
@@ -95,8 +101,8 @@ export function ExpenseTableSkeleton(props: ExpenseTableSkeletonProps) {
       </div>
       <div>
         <div class="w-full overflow-auto whitespace-nowrap mt-4">
-          <Table headers={headers} caption="end of results">
-            {Array(props.count ?? 3).fill(<ExpenseRowSkeleton />)}
+          <Table headers={headers} caption="End of results">
+            {Array(count).fill(<ExpenseRowSkeleton />)}
           </Table>
         </div>
       </div>

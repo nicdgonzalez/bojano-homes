@@ -118,12 +118,13 @@ export function Overview() {
       when={typeof getProperty() !== "undefined"}
       fallback={<div>Loading...</div>}
     >
-      <PropertySelector
-        properties={properties()!}
-        property={getProperty()!}
-        index={getIndex()}
-        setIndex={setIndex}
-      />
+      <div class="flex flex-row">
+        <PropertySelector
+          properties={properties()!}
+          property={getProperty()!}
+          setIndex={setIndex}
+        />
+      </div>
 
       <Suspense fallback={<div>Loading...</div>}>
         <div>
@@ -139,6 +140,7 @@ export function Overview() {
         </div>
       </Suspense>
 
+      {/* fix column spacing in skeleton */}
       <Suspense fallback={<ExpenseTableSkeleton />}>
         <ExpenseTable expenses={expenses()!} />
       </Suspense>

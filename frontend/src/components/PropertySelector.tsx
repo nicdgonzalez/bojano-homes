@@ -6,7 +6,6 @@ import { For, Setter } from "solid-js";
 interface PropertySelectorProps {
   properties: Property[];
   property: Property;
-  index: number;
   setIndex: Setter<number>;
 }
 
@@ -26,29 +25,31 @@ export function PropertySelector(props: PropertySelectorProps) {
   }
 
   return (
-    <div class="flex flex-col self-end">
-      <label for="property-select">Viewing:</label>
-      <div class="flex flex-row gap-x-4">
-        <House height={16} width={16} />
-        <select
-          name="property"
-          id="select-property"
-          onChange={selectHandler}
-        >
-          <For
-            each={props.properties}
-            fallback={<div>Loading...</div>}
+    <div class="w-fit rounded-md border border-gray-200 bg-white dark:bg-gray-900/50 dark:border-gray-800 p-2 sm:p-4 mt-8 ml-auto">
+      <div class="flex flex-col">
+        <label for="property-select">Viewing Property:</label>
+        <div class="flex flex-row rounded-md gap-x-4 bg-gray-50 dark:bg-gray-900 px-4 py-2 mt-2">
+          <House height={16} width={16} class="self-center" />
+          <select
+            name="property"
+            id="select-property"
+            onChange={selectHandler}
           >
-            {(property) => (
-              <option
-                value={property.id}
-                selected={property.id === props.property.id}
-              >
-                {property.name}
-              </option>
-            )}
-          </For>
-        </select>
+            <For
+              each={props.properties}
+              fallback={<div>Loading...</div>}
+            >
+              {(property) => (
+                <option
+                  value={property.id}
+                  selected={property.id === props.property.id}
+                >
+                  {property.name}
+                </option>
+              )}
+            </For>
+          </select>
+        </div>
       </div>
     </div>
   );
