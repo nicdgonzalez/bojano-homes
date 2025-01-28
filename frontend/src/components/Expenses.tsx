@@ -4,6 +4,7 @@ import { Expense } from "../lib/properties";
 import { ExternalLink } from "./ExternalLink";
 import { Skeleton } from "./ui/skeleton";
 import { Box } from "./Box";
+import { H3, Paragraph } from "./Text";
 
 interface ExpenseTableProps {
   expenses: Expense[];
@@ -21,12 +22,8 @@ export function ExpenseTable(props: ExpenseTableProps) {
   return (
     <Box>
       <div>
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-50 w-full">
-          Expenses
-        </h3>
-        <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
-          Overview of this property's expenses this month.
-        </p>
+        <H3>Expenses</H3>
+        <Paragraph>Overview of this property's expenses this month.</Paragraph>
       </div>
       <div>
         <div class="w-full overflow-auto whitespace-nowrap mt-4">
@@ -92,12 +89,8 @@ export function ExpenseTableSkeleton(props: ExpenseTableSkeletonProps) {
   return (
     <div class="mx-auto w-full rounded-md border border-gray-200 bg-white dark:bg-gray-900/50 dark:border-gray-800 p-6 sm:p-10 mt-8">
       <div>
-        <h3 class="font-semibold text-gray-900 dark:text-gray-50 w-full">
-          Expenses
-        </h3>
-        <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
-          Overview of this property's expenses this month.
-        </p>
+        <H3>Expenses</H3>
+        <Paragraph>Overview of this property's expenses this month.</Paragraph>
       </div>
       <div>
         <div class="w-full overflow-auto whitespace-nowrap mt-4">

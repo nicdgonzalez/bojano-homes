@@ -2,18 +2,18 @@ import {
   createEffect,
   createResource,
   createSignal,
-  For,
   Show,
   Suspense,
 } from "solid-js";
 import {
+  getAnnualReservations,
   getMonthlyExpenses,
-  getMonthlyReservations,
   getProperties,
   Property,
 } from "../lib/properties";
 import { ExpenseTable, ExpenseTableSkeleton } from "../components/Expenses";
 import { PropertySelector } from "../components/PropertySelector";
+import { RevenueChart } from "~/components/RevenueChart";
 
 /**
  * Get the index of the last property they were viewing from the browser's
@@ -62,13 +62,15 @@ export function Overview() {
   // given the data for 2025 yet.
   const selectedYear = now.getFullYear() - 1;
 
+  const [getRevenueLoaded, setRevenueLoaded] = createSignal(false);
+
   const [reservations] = createResource(getProperty, async () => {
+    setRevenueLoaded(false);
     try {
-      const data = await getMonthlyReservations(
+      const data = await getAnnualReservations(
         user.id,
         getProperty()!.id,
         selectedYear,
-        selectedMonth,
       );
 
       return data;
@@ -99,23 +101,33 @@ export function Overview() {
 
   createEffect(() => {
     // TODO: Flatten data first so duplicate entries are not counted twice.
-    const nightsOccupied = reservations()?.reduce<number>((total, r) => {
-      const checkOutMs = Number(r.checkOut);
-      const checkInMs = Number(r.checkIn);
-      const days = Math.abs(checkOutMs - checkInMs) / (1000 * 60 * 60 * 24);
+    const nightsOccupied = reservations()
+      ?.at(selectedMonth - 1)
+      ?.reduce<number>((total, r) => {
+        const checkOutMs = Number(r.checkOut);
+        const checkInMs = Number(r.checkIn);
+        const days = Math.abs(checkOutMs - checkInMs) / (1000 * 60 * 60 * 24);
 
-      return total + days;
-    }, 0);
+        return total + days;
+      }, 0);
 
     setNightsOccupied(nightsOccupied);
   });
 
-  // TODO: Refactor the property selector.
-  // TODO: Switch to <SuspenseList>.
+  const [getRevenue, setRevenue] = createSignal<number[] | undefined>();
+
+  createEffect(() => {
+    const revenue: number[] | undefined = reservations()?.flatMap(
+      (month) => month.map((r) => r.revenue).reduce((total, r) => total + r, 0),
+    );
+    console.debug(`Revenue: ${revenue}`);
+    setRevenue(revenue);
+    setRevenueLoaded(true);
+  });
 
   return (
     <Show
-      when={typeof getProperty() !== "undefined"}
+      when={getProperty() !== undefined}
       fallback={<div>Loading...</div>}
     >
       <div class="flex flex-row">
@@ -126,19 +138,9 @@ export function Overview() {
         />
       </div>
 
-      <Suspense fallback={<div>Loading...</div>}>
-        <div>
-          <h2>Nights Occupied: {getNightsOccupied()}</h2>
-          <For each={reservations()}>
-            {(r) => (
-              <>
-                <p>{JSON.stringify(r)}</p>
-                <p></p>
-              </>
-            )}
-          </For>
-        </div>
-      </Suspense>
+      <Show when={getRevenueLoaded()} fallback={<RevenueChart revenue={[]} />}>
+        <RevenueChart revenue={getRevenue()!} />
+      </Show>
 
       {/* fix column spacing in skeleton */}
       <Suspense fallback={<ExpenseTableSkeleton />}>

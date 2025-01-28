@@ -25,12 +25,13 @@ export function PropertySelector(props: PropertySelectorProps) {
   }
 
   return (
-    <div class="w-fit rounded-md border border-gray-200 bg-white dark:bg-gray-900/50 dark:border-gray-800 p-2 sm:p-4 mt-8 ml-auto">
+    <div class="w-full md:w-fit rounded-md border border-gray-200 bg-white dark:bg-gray-900/50 dark:border-gray-800 p-2 sm:p-4 mt-8 mx-auto md:mr-0">
       <div class="flex flex-col">
-        <label for="property-select">Viewing Property:</label>
+        <label for="property-select" class="text-sm">Viewing Property:</label>
         <div class="flex flex-row rounded-md gap-x-4 bg-gray-50 dark:bg-gray-900 px-4 py-2 mt-2">
           <House height={16} width={16} class="self-center" />
           <select
+            class="w-full"
             name="property"
             id="select-property"
             onChange={selectHandler}

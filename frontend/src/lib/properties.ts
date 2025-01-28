@@ -143,3 +143,28 @@ export async function getMonthlyReservations(
 
   return data;
 }
+
+export async function getAnnualReservations(
+  userId: string,
+  propertyId: string,
+  year: number,
+): Promise<Reservation[][]> {
+  const url =
+    `/api/users/${userId}/properties/${propertyId}/reservations/${year}`;
+  const response = await fetch(url);
+
+  const body = await response.json() as ReservationPayload[][];
+
+  const data = body.map((month) =>
+    month.map((r) => ({
+      platform: r.platform,
+      checkIn: new Date(r.check_in),
+      checkOut: new Date(r.check_out),
+      revenue: r.revenue,
+      managementFee: r.management_fee,
+      netProfit: r.net_profit,
+    }))
+  ) as Reservation[][];
+
+  return data;
+}
