@@ -12,27 +12,47 @@ import {
   getProperties,
   Property,
 } from "../lib/properties";
-import { House } from "lucide-solid";
-import { ExpenseTable } from "../components/Expenses";
+import { ExpenseTable, ExpenseTableSkeleton } from "../components/Expenses";
+import { PropertySelector } from "../components/PropertySelector";
+
+/**
+ * Get the index of the last property they were viewing from the browser's
+ * `localStorage`.
+ *
+ * @returns The value converted to a number.
+ */
+function getInitialIndex(): number {
+  const value = window.localStorage.getItem("propertyIndex") || "0";
+  const index = parseInt(value, 10);
+
+  if (isNaN(index)) {
+    window.localStorage.setItem("propertyIndex", "0");
+    return 0;
+  }
+
+  return index;
+}
 
 export function Overview() {
   // <ClerkLoaded> at root layout guarantees Clerk is defined by this point.
-  // A user must be signed in at all times to view the site (redirected by the
-  // <Top> component on every page).
+  // A user must be signed in at all times to view the site (redirected by
+  // the <Top> component on every page).
   const user = window.Clerk!.user!;
 
   const [properties] = createResource(async () => await getProperties(user.id));
-  const [index, setIndex] = createSignal<number>(0);
-  const [property, setProperty] = createSignal<Property | undefined>();
+  const [getIndex, setIndex] = createSignal<number>(getInitialIndex());
+  const [getProperty, setProperty] = createSignal<Property | undefined>();
 
   createEffect(() => {
-    if (typeof properties() === "undefined") {
-      return;
-    }
-
-    setProperty(properties()![index()]);
+    window.localStorage.setItem("propertyIndex", getIndex().toString());
   });
 
+  createEffect(() => {
+    const property = properties()?.at(getIndex());
+    setProperty(property);
+  });
+
+  // TODO: Create a selector for the date and year.
   const now = new Date();
   // Use 1-based indexing for months (i.e., 1 = January).
   // NOTE: I am using April (month 4) for testing because I know
@@ -42,13 +62,11 @@ export function Overview() {
   // given the data for 2025 yet.
   const selectedYear = now.getFullYear() - 1;
 
-  const [getNightsOccupied, setNightsOccupied] = createSignal<number>(-1);
-
-  const [reservations] = createResource(property, async () => {
+  const [reservations] = createResource(getProperty, async () => {
     try {
       const data = await getMonthlyReservations(
         user.id,
-        property()!.id,
+        getProperty()!.id,
         selectedYear,
         selectedMonth,
       );
@@ -60,36 +78,34 @@ export function Overview() {
     }
   });
 
-  const [expenses] = createResource(property, async () => {
+  const [expenses] = createResource(getProperty, async () => {
     try {
       const data = await getMonthlyExpenses(
         user.id,
-        property()!.id,
+        getProperty()!.id,
         selectedYear,
         selectedMonth,
       );
 
-      return data.sort((a, b) => +a.timestamp - +b.timestamp);
+      return data.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
     } catch (err) {
       console.error(`Failed to get expenses: ${err}`);
       return [];
     }
   });
 
+  // deno-fmt-ignore
+  const [getNightsOccupied, setNightsOccupied] = createSignal<number | undefined>();
+
   createEffect(() => {
-    if (typeof reservations() === "undefined") {
-      return;
-    }
-
     // TODO: Flatten data first so duplicate entries are not counted twice.
-    const nightsOccupied = reservations()!
-      .reduce<number>((total, r) => {
-        const checkOutMs = Number(r.checkOut);
-        const checkInMs = Number(r.checkIn);
-        const days = Math.abs(checkOutMs - checkInMs) / (1000 * 60 * 60 * 24);
+    const nightsOccupied = reservations()?.reduce<number>((total, r) => {
+      const checkOutMs = Number(r.checkOut);
+      const checkInMs = Number(r.checkIn);
+      const days = Math.abs(checkOutMs - checkInMs) / (1000 * 60 * 60 * 24);
 
-        return total + days;
-      }, 0);
+      return total + days;
+    }, 0);
 
     setNightsOccupied(nightsOccupied);
   });
@@ -99,40 +115,15 @@ export function Overview() {
 
   return (
     <Show
-      when={typeof property() !== "undefined"}
+      when={typeof getProperty() !== "undefined"}
       fallback={<div>Loading...</div>}
     >
-      <div class="flex flex-col self-end">
-        <label for="property-select">Viewing Property:</label>
-        <div class="flex flex-row gap-x-4">
-          <House height={16} width={16} />
-          <select
-            name="property"
-            id="property-select"
-            onChange={(event) => {
-              const newPropertyId = event.target.value;
-              // I don't think this value can be changed until properties are done loading.
-              const newIndex = properties()!.findIndex((p) =>
-                p.id === newPropertyId
-              );
-
-              if (newIndex === -1) {
-                console.error(`failed to change properties`);
-              }
-
-              setIndex(newIndex);
-            }}
-          >
-            <For each={properties()} fallback={<div>Loading...</div>}>
-              {(p) => (
-                <option value={p.id} selected={p.id === property()!.id}>
-                  {p.name}
-                </option>
-              )}
-            </For>
-          </select>
-        </div>
-      </div>
+      <PropertySelector
+        properties={properties()!}
+        property={getProperty()!}
+        index={getIndex()}
+        setIndex={setIndex}
+      />
 
       <Suspense fallback={<div>Loading...</div>}>
         <div>
@@ -148,7 +139,7 @@ export function Overview() {
         </div>
       </Suspense>
 
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<ExpenseTableSkeleton />}>
         <ExpenseTable expenses={expenses()!} />
       </Suspense>
     </Show>

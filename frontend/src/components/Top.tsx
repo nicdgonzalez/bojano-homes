@@ -8,7 +8,7 @@ import {
 
 export function Top() {
   return (
-    <div class="sticky top-0 flex h-16 w-screen items-center justify-between bg-[#493857]">
+    <div class="sticky top-0 z-50 flex h-16 w-screen items-center justify-between bg-[#493857]">
       <a href="/">
         <img
           src="/public/assets/images/logo-white.png"

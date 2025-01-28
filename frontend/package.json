@@ -5,16 +5,21 @@
   "type": "module",
   "dependencies": {
     "@clerk/clerk-js": "^5.43.4",
+    "@kobalte/core": "^0.13.7",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.15.2",
     "@suid/icons-material": "^0.8.1",
     "@suid/material": "^0.18.0",
     "@suid/vite-plugin": "^0.3.1",
     "@tailwindcss/vite": "^4.0.0",
+    "class-variance-authority": "^0.7.1",
     "clerk-solidjs": "^2.0.10",
+    "clsx": "^2.1.1",
     "react": "^19.0.0",
     "solid-date-pickers": "^0.5.0",
-    "solid-js": "^1.9.3"
+    "solid-js": "^1.9.3",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",

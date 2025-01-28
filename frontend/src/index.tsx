@@ -38,11 +38,11 @@ function App() {
       >
         <Suspense>
           <div class="bg-amber-200 text-amber-900 p-1 text-center font-semibold">
-            The site is under active development!
+            This site is under active development!
           </div>
           <Top />
           <div class="flex flex-col items-center">
-            <div class="mx-auto max-w-screen px-4 lg:px-8 relative flex-1 overflow-hidden">
+            <div class="mx-auto w-full max-w-screen px-4 lg:px-8 relative flex-1 overflow-hidden">
               <ClerkLoaded>
                 <Overview />
               </ClerkLoaded>

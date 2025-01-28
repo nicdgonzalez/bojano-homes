@@ -10,7 +10,7 @@ export function ExternalLink({ link, children }: ExternalLinkProps) {
     <a
       target="_blank"
       href={link}
-      class="flex flex-row gap-x-1 text-blue-700 underline"
+      class="flex flex-row gap-x-1 text-blue-700 dark:text-blue-300 underline"
     >
       {children}
       <SquareArrowOutUpRight width={16} height={16} class="self-center" />
