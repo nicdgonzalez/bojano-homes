@@ -60,7 +60,7 @@ impl Client {
         }
     }
 
-    async fn get_access_token(&mut self) -> Result<String, Box<dyn error::Error>> {
+    pub async fn get_access_token(&mut self) -> Result<String, Box<dyn error::Error>> {
         let access_token_expires_soon = self
             .access_token
             .as_ref()

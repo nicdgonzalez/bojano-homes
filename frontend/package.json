@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@ark-ui/solid": "^4.10.1",
     "@clerk/clerk-js": "^5.43.4",
     "@kobalte/core": "^0.13.7",
     "@solid-primitives/refs": "^1.1.0",

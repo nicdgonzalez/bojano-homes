@@ -8,6 +8,27 @@ import { H3, Paragraph } from "./Text";
 
 interface ExpenseTableProps {
   expenses: Expense[];
+  month: number;
+  year: number;
+}
+
+function getMonthName(month: number) {
+  const months = [
+    "", // Used to offset the array so months can start from index 1.
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  return months.at(month);
 }
 
 export function ExpenseTable(props: ExpenseTableProps) {
@@ -18,12 +39,15 @@ export function ExpenseTable(props: ExpenseTableProps) {
     "Receipt Link",
     "Purchased By",
   ];
+  const monthName = () => getMonthName(props.month);
 
   return (
     <Box>
       <div>
         <H3>Expenses</H3>
-        <Paragraph>Overview of this property's expenses this month.</Paragraph>
+        <Paragraph>
+          Overview of this property's expenses for {monthName()} {props.year}.
+        </Paragraph>
       </div>
       <div>
         <div class="w-full overflow-auto whitespace-nowrap mt-4">
@@ -73,6 +97,8 @@ function ExpenseRow({ expense }: ExpenseRowProps) {
 
 interface ExpenseTableSkeletonProps {
   count?: number;
+  month: number;
+  year: number;
 }
 
 // TODO: Refactor <ExpenseTable> so I can reuse the parts for the skeleton.
@@ -85,12 +111,15 @@ export function ExpenseTableSkeleton(props: ExpenseTableSkeletonProps) {
     "Purchased By",
   ];
   const count = props.count ?? 3;
+  const monthName = () => getMonthName(props.month);
 
   return (
     <div class="mx-auto w-full rounded-md border border-gray-200 bg-white dark:bg-gray-900/50 dark:border-gray-800 p-6 sm:p-10 mt-8">
       <div>
         <H3>Expenses</H3>
-        <Paragraph>Overview of this property's expenses this month.</Paragraph>
+        <Paragraph>
+          Overview of this property's expenses for {monthName()} {props.year}.
+        </Paragraph>
       </div>
       <div>
         <div class="w-full overflow-auto whitespace-nowrap mt-4">

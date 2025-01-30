@@ -7,12 +7,9 @@ use axum::{
     Json, Router,
 };
 use serde_json::json;
+use sheets::{self, Scope};
 
-use crate::{
-    api::service::get_user_by_id,
-    sheets_v4::{self, Scope},
-    AppState,
-};
+use crate::{api::service::get_user_by_id, AppState};
 
 use super::{model::Reservation, service::*};
 
@@ -147,9 +144,9 @@ async fn expenses_annual_get(
         .secrets
         .get("SERVICE_ACCOUNT_KEY")
         .expect("expected SERVICE_ACCOUNT_KEY to be defined");
-    let credentials: sheets_v4::ServiceAccountKey =
+    let credentials: sheets::ServiceAccountKey =
         serde_json::from_str(&service_account_key).unwrap();
-    let mut sheets_client = sheets_v4::Client::new(credentials, Scope::SpreadsheetsReadOnly);
+    let mut sheets_client = sheets::Client::new(credentials, Scope::SpreadsheetsReadOnly);
 
     match get_expenses_by_year(&property, year, &mut sheets_client, &state.db).await {
         Ok(expenses) => Json(expenses).into_response(),
@@ -180,9 +177,9 @@ async fn expenses_monthly_get(
         .secrets
         .get("SERVICE_ACCOUNT_KEY")
         .expect("expected SERVICE_ACCOUNT_KEY to be defined");
-    let credentials: sheets_v4::ServiceAccountKey =
+    let credentials: sheets::ServiceAccountKey =
         serde_json::from_str(&service_account_key).unwrap();
-    let mut sheets_client = sheets_v4::Client::new(credentials, Scope::SpreadsheetsReadOnly);
+    let mut sheets_client = sheets::Client::new(credentials, Scope::SpreadsheetsReadOnly);
 
     match get_expenses_by_month(&property, year, month, &mut sheets_client, &state.db).await {
         Ok(expenses) => Json(expenses).into_response(),
@@ -208,9 +205,9 @@ async fn reservations_annual_get(
         .secrets
         .get("SERVICE_ACCOUNT_KEY")
         .expect("expected SERVICE_ACCOUNT_KEY to be defined");
-    let credentials: sheets_v4::ServiceAccountKey =
+    let credentials: sheets::ServiceAccountKey =
         serde_json::from_str(&service_account_key).unwrap();
-    let mut sheets_client = sheets_v4::Client::new(credentials, Scope::SpreadsheetsReadOnly);
+    let mut sheets_client = sheets::Client::new(credentials, Scope::SpreadsheetsReadOnly);
 
     let secret_key = state
         .secrets
@@ -248,9 +245,9 @@ async fn reservations_monthly_get(
         .secrets
         .get("SERVICE_ACCOUNT_KEY")
         .expect("expected SERVICE_ACCOUNT_KEY to be defined");
-    let credentials: sheets_v4::ServiceAccountKey =
+    let credentials: sheets::ServiceAccountKey =
         serde_json::from_str(&service_account_key).unwrap();
-    let mut sheets_client = sheets_v4::Client::new(credentials, Scope::SpreadsheetsReadOnly);
+    let mut sheets_client = sheets::Client::new(credentials, Scope::SpreadsheetsReadOnly);
 
     let secret_key = state
         .secrets

@@ -9,9 +9,9 @@ use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
 use reqwest::StatusCode;
 use serde::Deserialize;
+use sheets::{self, ValueRange};
 
 use crate::http_error;
-use crate::sheets_v4::{self, CreateGetValues, ValueRange};
 
 use super::error::{ExpenseError, PropertyError, ReservationError, UserError};
 use super::model::{Expense, Month, Property, Reservation, User};
@@ -141,7 +141,7 @@ struct ExpenseValues(
 pub async fn get_expenses_by_year(
     property: &Property,
     year: i32,
-    sheets_client: &mut sheets_v4::Client,
+    sheets_client: &mut sheets::Client,
     database: &mongodb::Database,
 ) -> Result<Vec<Expense>, ExpenseError> {
     let expense_sheet_id = get_expense_sheet_id_by_year(year, &database)
@@ -150,14 +150,10 @@ pub async fn get_expenses_by_year(
             ExpenseError::RequestFailure(format!("failed to get id for {year}'s expense sheet"))
         })?;
 
-    let params = CreateGetValues {
-        spreadsheet_id: expense_sheet_id,
-        range: "Expenses!A:H".to_string(),
-    };
-
-    let result: ValueRange<ExpenseValues> = sheets_v4::get_values(sheets_client, &params)
-        .await
-        .map_err(|err| ExpenseError::RequestFailure(err.to_string()))?;
+    let result: ValueRange<ExpenseValues> =
+        sheets::get_values(sheets_client, &expense_sheet_id, "Expenses!A:H")
+            .await
+            .map_err(|err| ExpenseError::RequestFailure(err.to_string()))?;
 
     let expenses: Vec<Expense> = result
         .values
@@ -214,7 +210,7 @@ pub async fn get_expenses_by_month(
     property: &Property,
     year: i32,
     month: u8,
-    sheets_client: &mut sheets_v4::Client,
+    sheets_client: &mut sheets::Client,
     database: &mongodb::Database,
 ) -> Result<Vec<Expense>, ExpenseError> {
     Ok(
@@ -253,7 +249,7 @@ pub async fn get_reservations_by_month(
     year: i32,
     month: u8,
     database: &mongodb::Database,
-    sheets_client: &mut sheets_v4::Client,
+    sheets_client: &mut sheets::Client,
 ) -> Result<Vec<Reservation>, ReservationError> {
     // Property ID should already be valid if we got to this point.
     let property_id = ObjectId::from_str(&property.id).unwrap();
@@ -268,14 +264,10 @@ pub async fn get_reservations_by_month(
         .try_into()
         .map_err(|_| ReservationError::InvalidMonth)?;
 
-    let params = CreateGetValues {
-        spreadsheet_id: spreadsheet.id.to_string(),
-        range: format!("{month}!A:G"),
-    };
-
-    let result: ValueRange<ReservationValues> = sheets_v4::get_values(sheets_client, &params)
-        .await
-        .map_err(|err| ReservationError::RequestFailure(err.to_string()))?;
+    let result: ValueRange<ReservationValues> =
+        sheets::get_values(sheets_client, &spreadsheet.id, &format!("{month}!A:G"))
+            .await
+            .map_err(|err| ReservationError::RequestFailure(err.to_string()))?;
 
     let reservations: Vec<Reservation> = result
         .values

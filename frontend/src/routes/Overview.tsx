@@ -11,9 +11,10 @@ import {
   getProperties,
   Property,
 } from "../lib/properties";
-import { ExpenseTable, ExpenseTableSkeleton } from "../components/Expenses";
+import { ExpenseTable, ExpenseTableSkeleton } from "../components/ExpenseTable";
 import { PropertySelector } from "../components/PropertySelector";
 import { RevenueChart } from "~/components/RevenueChart";
+import { Calendar } from "~/components/Calendar";
 
 /**
  * Get the index of the last property they were viewing from the browser's
@@ -55,24 +56,35 @@ export function Overview() {
   // TODO: Create a selector for the date and year.
   const now = new Date();
   // Use 1-based indexing for months (i.e., 1 = January).
-  // NOTE: I am using April (month 4) for testing because I know
-  // most properties have data for this month.
-  const selectedMonth = 4 || now.getMonth() + 1;
-  // NOTE: Subtracting 1 from the current year (2025 -> 2024) because I was not
-  // given the data for 2025 yet.
-  const selectedYear = now.getFullYear() - 1;
+  // deno-fmt-ignore
+  const [getMonth, setSelectedMonth] = createSignal<number>(now.getMonth() + 1);
+  // deno-fmt-ignore
+  const [getYear, setSelectedYear] = createSignal<number>(now.getFullYear());
 
   const [getRevenueLoaded, setRevenueLoaded] = createSignal(false);
 
-  const [reservations] = createResource(getProperty, async () => {
+  const [reservations] = createResource(() => {
+    const user = window.Clerk?.user;
+
+    if (user === undefined || user === null) {
+      return null;
+    }
+
+    const property = getProperty();
+
+    if (property === undefined) {
+      return null;
+    }
+
+    return {
+      userId: user.id,
+      propertyId: property.id,
+      year: getYear(),
+    };
+  }, async ({ userId, propertyId, year }) => {
     setRevenueLoaded(false);
     try {
-      const data = await getAnnualReservations(
-        user.id,
-        getProperty()!.id,
-        selectedYear,
-      );
-
+      const data = await getAnnualReservations(userId, propertyId, year);
       return data;
     } catch (err) {
       console.error(`Failed to get reservations: ${err}`);
@@ -80,15 +92,28 @@ export function Overview() {
     }
   });
 
-  const [expenses] = createResource(getProperty, async () => {
-    try {
-      const data = await getMonthlyExpenses(
-        user.id,
-        getProperty()!.id,
-        selectedYear,
-        selectedMonth,
-      );
+  const [expenses] = createResource(() => {
+    const user = window.Clerk?.user;
 
+    if (user === undefined || user === null) {
+      return null;
+    }
+
+    const property = getProperty();
+
+    if (property === undefined) {
+      return null;
+    }
+
+    return {
+      userId: user.id,
+      propertyId: property.id,
+      year: getYear(),
+      month: getMonth(),
+    };
+  }, async ({ userId, propertyId, year, month }) => {
+    try {
+      const data = await getMonthlyExpenses(userId, propertyId, year, month);
       return data.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
     } catch (err) {
       console.error(`Failed to get expenses: ${err}`);
@@ -102,7 +127,7 @@ export function Overview() {
   createEffect(() => {
     // TODO: Flatten data first so duplicate entries are not counted twice.
     const nightsOccupied = reservations()
-      ?.at(selectedMonth - 1)
+      ?.at(getMonth() - 1)
       ?.reduce<number>((total, r) => {
         const checkOutMs = Number(r.checkOut);
         const checkInMs = Number(r.checkIn);
@@ -138,13 +163,27 @@ export function Overview() {
         />
       </div>
 
-      <Show when={getRevenueLoaded()} fallback={<RevenueChart revenue={[]} />}>
-        <RevenueChart revenue={getRevenue()!} />
+      <Calendar
+        month={getMonth()}
+        setMonth={setSelectedMonth}
+        year={getYear()}
+        setYear={setSelectedYear}
+      />
+
+      <Show
+        when={getRevenueLoaded() === true}
+        fallback={<RevenueChart revenue={[]} year={getYear()} />}
+      >
+        <RevenueChart revenue={getRevenue()!} year={getYear()} />
       </Show>
 
       {/* fix column spacing in skeleton */}
       <Suspense fallback={<ExpenseTableSkeleton />}>
-        <ExpenseTable expenses={expenses()!} />
+        <ExpenseTable
+          expenses={expenses()!}
+          year={getYear()}
+          month={getMonth()}
+        />
       </Suspense>
     </Show>
   );

@@ -42,7 +42,7 @@ function App() {
           </div>
           <Top />
           <div class="flex flex-col items-center">
-            <div class="mx-auto w-full max-w-screen px-4 lg:px-8 relative flex-1 overflow-hidden">
+            <div class="mx-auto w-full container px-4 lg:px-8 relative flex-1 overflow-hidden">
               <ClerkLoaded>
                 <Overview />
               </ClerkLoaded>
