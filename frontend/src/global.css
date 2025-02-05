@@ -2,8 +2,13 @@
 
 /* Clerk overrides */
 .cl-userButtonOuterIdentifier {
-  color: white;
   font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cl-userButtonOuterIdentifier {
+    color: white;
+  }
 }
 
 @layer base {

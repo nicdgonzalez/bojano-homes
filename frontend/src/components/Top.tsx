@@ -8,14 +8,14 @@ import {
 
 export function Top() {
   return (
-    <div class="sticky top-0 z-50 flex h-16 w-screen items-center justify-between bg-[#493857]">
+    <div class="sticky top-0 z-50 flex h-16 w-screen items-center justify-between backdrop-blur-md bg-white/70 dark:bg-gray-900/70 border-b border-gray-200 dark:border-gray-800">
       <a href="/">
         <img
           src="/public/assets/images/logo-white.png"
           alt="Bojano Homes logo"
           width="100"
           height="28"
-          class="px-4 py-2"
+          class="px-4 py-2 brightness-0 dark:brightness-100"
         />
       </a>
       <ClerkLoaded>

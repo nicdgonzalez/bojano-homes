@@ -1,9 +1,23 @@
-import { ParentProps } from "solid-js";
+import { JSX, ParentProps, splitProps } from "solid-js";
+import { cn } from "~/lib/utils";
 
-export function H3(props: ParentProps) {
+interface HeadingProps extends JSX.HTMLAttributes<HTMLHeadingElement> {}
+
+export function H3(props: HeadingProps) {
+  const [local, others] = splitProps(props as HeadingProps, [
+    "class",
+    "children",
+  ]);
+
   return (
-    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-50 w-full">
-      {props.children}
+    <h3
+      class={cn(
+        "text-lg font-semibold text-gray-900 dark:text-gray-50 w-full",
+        local.class,
+      )}
+      {...others}
+    >
+      {local.children}
     </h3>
   );
 }

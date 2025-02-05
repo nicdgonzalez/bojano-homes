@@ -8,24 +8,24 @@ export interface TableProps extends ParentProps {
 /**
  * Represents a table of data.
  */
-export function Table({ headers, children, caption }: TableProps) {
+export function Table(props: TableProps) {
   return (
     <div class="w-full overflow-auto whitespace-nowrap mt-8">
       <table class="w-full caption-bottom border-b border-gray-200 dark:border-gray-800">
-        <Show when={typeof caption !== "undefined"}>
+        <Show when={typeof props.caption !== "undefined"}>
           <caption class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
-            {caption}
+            {props.caption}
           </caption>
         </Show>
         <thead>
           <tr class="[&_td:last-child]:pr-4 [&_th:last-child]:pr-4 [&_td:first-child]:pl-4 [&_th:first-child]:pl-4">
-            <For each={headers}>
+            <For each={props.headers}>
               {(header) => <TableHeader name={header} />}
             </For>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-          {children}
+          {props.children}
         </tbody>
       </table>
     </div>

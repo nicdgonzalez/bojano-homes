@@ -22,10 +22,14 @@ export async function getProperties(
 
   const url = `/api/users/${userId}/properties`;
   const response = await fetch(url);
-  const data = await response.json() as Property[];
+  const body = await response.json();
 
-  cache.properties = data;
-  return data;
+  if ("detail" in body) {
+    throw new Error(body.detail);
+  }
+
+  cache.properties = body;
+  return body;
 }
 
 /**
@@ -81,9 +85,13 @@ export async function getMonthlyExpenses(
     `/api/users/${userId}/properties/${propertyId}/expenses/${year}/${month}`;
   const response = await fetch(url);
 
-  const body = await response.json() as ExpensePayload[];
+  const body = await response.json();
 
-  const data = body.map((e) => ({
+  if ("detail" in body) {
+    throw new Error(body.detail);
+  }
+
+  const data = (body as ExpensePayload[]).map((e) => ({
     amount: e.amount,
     description: e.description,
     timestamp: new Date(e.timestamp),
@@ -130,9 +138,13 @@ export async function getMonthlyReservations(
     `/api/users/${userId}/properties/${propertyId}/reservations/${year}/${month}`;
   const response = await fetch(url);
 
-  const body = await response.json() as ReservationPayload[];
+  const body = await response.json();
 
-  const data = body.map((r) => ({
+  if ("detail" in body) {
+    throw new Error(body.detail);
+  }
+
+  const data = (body as ReservationPayload[]).map((r) => ({
     platform: r.platform,
     checkIn: new Date(r.check_in),
     checkOut: new Date(r.check_out),
@@ -153,9 +165,13 @@ export async function getAnnualReservations(
     `/api/users/${userId}/properties/${propertyId}/reservations/${year}`;
   const response = await fetch(url);
 
-  const body = await response.json() as ReservationPayload[][];
+  const body = await response.json();
 
-  const data = body.map((month) =>
+  if ("detail" in body) {
+    throw new Error(body.detail);
+  }
+
+  const data = (body as ReservationPayload[][]).map((month) =>
     month.map((r) => ({
       platform: r.platform,
       checkIn: new Date(r.check_in),

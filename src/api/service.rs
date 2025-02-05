@@ -233,7 +233,7 @@ struct SpreadsheetDocument {
     year: i32,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct ReservationValues(
     String, // [0]: Platform
     String, // [1]: Date Paid Out
@@ -274,7 +274,7 @@ pub async fn get_reservations_by_month(
         .iter()
         .skip(1) // Skip the table headings.
         .filter_map(|values| {
-            if values.0.is_empty() {
+            if values.0.is_empty() || values.0 == "#REF!" {
                 return None;
             }
 
