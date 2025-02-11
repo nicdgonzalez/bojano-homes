@@ -22,7 +22,7 @@ The following steps cover how to set up and run the application locally.
   [here](https://doc.rust-lang.org/cargo/getting-started/installation.html).
 
 - In order to run the backend server locally, you need to use the Shuttle
-  comamnd-line interface. Follow the installation instructions
+  command-line interface. Follow the installation instructions
   [here](https://docs.shuttle.dev/getting-started/installation).
 
 - To compile the client-side code, you'll need `npm`. Follow the installation
@@ -30,7 +30,7 @@ The following steps cover how to set up and run the application locally.
   [here](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm?ref=meilisearch-blog).
 
 - Create a file at the root of the project named `Secrets.toml` with the
-  following contents (reach out to me if you need help setting up the values):
+  following contents (reach out to me if you need help setting the values):
 
   ```toml
   # To access the Clerk API.
